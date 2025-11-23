@@ -28,13 +28,12 @@ TZ_OFFSET = 0 ## use AF service to get offset
 #TZ_OFFSET = -7 # for PDT
 #TZ_OFFSET = -8 # for PST
 
-LARGE_FONT =  "fonts/NotoSans-CondensedMedium-40.pcf"
+LARGE_FONT =  "fonts/NotoSans-CondensedMedium-72.pcf"
 FG_COLORS = [0x0000FF, 0xFF00FF, 0xFF0000, 0xFFFF00, 0x00FF00, 0x00FFFF]
 
 
-## UI buttons
-BUTTON_UP = board.D1
-BUTTON_DOWN = board.D2
+## UI buttons (BOOT and RESET) - can only use "BOOT"
+BUTTON = board.BUTTON
 
 
 class ColorSelect():
@@ -108,12 +107,14 @@ class MyDisplay:
         self.color_wheel = color_wheel
 
         # Create the text label
+        # label_dir = DWR because default display is portrait (vs landscape)
         self.text_area = Label(self.font, text=time_text,
+                               label_direction="DWR",
                                color=self.color_wheel.get())
 
-        # Set the location
-        self.text_area.x = 40
-        self.text_area.y = 70
+        # Set the location (Note display is in portrait mode)
+        self.text_area.x = 50
+        self.text_area.y = 100
 
         # display.show() is now replaced by setting .root_group
         self.display.root_group = self.text_area
@@ -127,25 +128,19 @@ class MyDisplay:
         # logger.debug(f'update_text with {text} and color {fgcolor:x}')
 
 
-async def handle_buttons(pin_up, pin_down, color_wheel):
-    """Handle two buttons: up/down run through a set of FG colors."""
+async def handle_button(pin, color_wheel):
+    """Handle UI button: run through a set of FG colors."""
     logger = logging.getLogger('main')
     with keypad.Keys(
-        (pin_down, pin_up), value_when_pressed=True, pull=True
+        (pin, ), value_when_pressed=True, pull=True
     ) as keys:
         while True:
             event = keys.events.get()
             if event and event.pressed:
-                if event.key_number == 0:
-                    # rotate up
-                    color_wheel.rotate_left()
-                    fgcolor = color_wheel.get()
-                    logger.info(f'key UP - rotate left - color {fgcolor:x}')
-                else:
-                    # key_number == 1
-                    color_wheel.rotate_right()
-                    fgcolor = color_wheel.get()
-                    logger.info(f'key DOWN - rotate left - color {fgcolor:x}')
+                # rotate down
+                color_wheel.rotate_right()
+                fgcolor = color_wheel.get()
+                logger.info(f'key DOWN - rotate left - color {fgcolor:x}')
             # Let another task run.
             await asyncio.sleep(0)
 
@@ -158,7 +153,7 @@ async def main():
     disp = MyDisplay(board.DISPLAY, LARGE_FONT, color_wheel)
 
     button_task = asyncio.create_task(
-        handle_buttons(BUTTON_UP, BUTTON_DOWN, color_wheel)
+        handle_button(BUTTON, color_wheel)
     )
 
     while True:

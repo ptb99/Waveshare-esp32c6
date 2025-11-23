@@ -17,5 +17,6 @@ venv
 
 # project-specific files
 secrets.py
+settings.toml
 CIRCUITPY
 bins
